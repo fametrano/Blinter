@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A chained EXIT does not end the path (P008)",
+  "lines": {
+    "6": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A GOTO to a label inside the THEN block of an IF/ELSE is not followed (P008)",
+  "lines": {
+    "13": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

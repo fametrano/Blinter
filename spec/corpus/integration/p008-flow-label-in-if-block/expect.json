@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A GOTO to a label inside an IF block is not followed (P008)",
+  "lines": {
+    "12": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

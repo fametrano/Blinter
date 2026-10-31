@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "ENDLOCAL on a branch that leaves the script does not close the scope below (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

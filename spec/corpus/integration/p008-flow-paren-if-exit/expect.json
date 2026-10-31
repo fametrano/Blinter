@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "An EXIT in an IF inside parentheses does not end the path (P008)",
+  "lines": {
+    "8": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

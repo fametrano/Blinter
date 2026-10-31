@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A conditional EXIT does not make a conditional ENDLOCAL leave (P008)",
+  "lines": {
+    "6": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

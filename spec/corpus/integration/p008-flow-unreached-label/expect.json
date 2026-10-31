@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "No path reaches this label, so the line-by-line state decides (P008)",
+  "lines": {
+    "4": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

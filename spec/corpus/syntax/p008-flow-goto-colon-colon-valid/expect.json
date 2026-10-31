@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "GOTO followed by two colons does not find the label, so ECHO is reached only with the scope open (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

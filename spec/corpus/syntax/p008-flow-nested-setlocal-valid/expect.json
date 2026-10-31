@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "Closing an inner SETLOCAL leaves the outer scope open (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

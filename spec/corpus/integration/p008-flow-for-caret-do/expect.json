@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A FOR command continued with a caret may not run (P008)",
+  "lines": {
+    "9": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

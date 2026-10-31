@@ -1,0 +1,13 @@
+@echo off
+setlocal enabledelayedexpansion
+set "A=%~1"
+if "!A!"=="1" (
+    endlocal
+    goto :error
+)
+echo !A!
+endlocal
+exit /b 0
+:error
+echo !A!
+exit /b 1

@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "Common ways for a branch to close its scope and leave (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

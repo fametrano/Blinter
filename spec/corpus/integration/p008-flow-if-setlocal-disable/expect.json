@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A variable after a conditional SETLOCAL DisableDelayedExpansion on the same line (P008)",
+  "lines": {
+    "4": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

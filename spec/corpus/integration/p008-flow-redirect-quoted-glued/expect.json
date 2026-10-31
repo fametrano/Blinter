@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A quoted redirection target goes on into the word glued to it, so exit /b there does not run (P008)",
+  "lines": {
+    "8": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

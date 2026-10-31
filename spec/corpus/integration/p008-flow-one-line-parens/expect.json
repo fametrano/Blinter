@@ -1,0 +1,23 @@
+{
+  "config": {},
+  "description": "A jump in one-line parentheses reaches its label (P008)",
+  "lines": {
+    "6": [
+      "P008"
+    ],
+    "9": [
+      "P008"
+    ],
+    "12": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

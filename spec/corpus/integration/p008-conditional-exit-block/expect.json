@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A conditional EXIT does not make the branch leave (P008)",
+  "lines": {
+    "7": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

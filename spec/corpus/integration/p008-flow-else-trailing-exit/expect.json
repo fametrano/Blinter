@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A command after the last ) of an IF/ELSE belongs to the ELSE, so the THEN path goes on (P008)",
+  "lines": {
+    "11": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

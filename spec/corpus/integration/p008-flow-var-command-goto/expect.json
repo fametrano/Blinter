@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A command read from a variable may jump to any label (P008)",
+  "lines": {
+    "10": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

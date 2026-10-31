@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A file that never enables delayed expansion is still reported behind a computed GOTO (P008)",
+  "lines": {
+    "4": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

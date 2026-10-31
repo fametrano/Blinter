@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A SETLOCAL inside the exiting branch does not open the lines below it (P008)",
+  "lines": {
+    "9": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

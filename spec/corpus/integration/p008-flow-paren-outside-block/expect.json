@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "cmd.exe ignores a ) line outside a block, exit /b on it included (P008)",
+  "lines": {
+    "9": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

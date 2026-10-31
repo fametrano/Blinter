@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A false ELSE IF with no ELSE skips the command after its ) (P008)",
+  "lines": {
+    "12": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

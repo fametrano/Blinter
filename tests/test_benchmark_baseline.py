@@ -13,6 +13,7 @@ import pytest
 
 from blinter.checkers.globals import _check_cmd_case_consistency
 from blinter import lint_batch_file
+from blinter.parsing.structure import _flow_closed_lines
 
 _REPO = Path(__file__).resolve().parent.parent
 
@@ -227,6 +228,31 @@ def test_line_count_scales_linearly(tmp_path: Path) -> None:
         return script
 
     _assert_scales_within(_write_echo_file(2000), _write_echo_file(8000), 10)
+
+
+def test_p008_computed_jumps_scale_linearly() -> None:
+    """P008's path walk enters every label once for all computed jumps.
+
+    Each ``goto %x%`` once queued every label again, so a file with as many
+    labels as jumps took quadratic time. The walk is timed on its own, since
+    the rest of the lint is linear and hides it. Four times the labels cost
+    sixteen times as much when the time is quadratic, against a limit of 8.
+    """
+
+    def _seconds(count: int) -> float:
+        lines = ["@echo off", "setlocal enabledelayedexpansion"]
+        for index in range(count):
+            lines += [f":l{index}", f'if "%~1"=="{index}" goto %x%']
+        lines.append("echo !A!")
+        best = float("inf")
+        for _ in range(_SCALING_ATTEMPTS):
+            start = time.process_time()
+            _flow_closed_lines(lines)
+            best = min(best, time.process_time() - start)
+        return best
+
+    small, large = _seconds(1000), _seconds(4000)
+    assert large <= max(small, 0.05) * 8, f"{large:.3f}s against {small:.3f}s"
 
 
 @pytest.mark.parametrize("fragment", ['"a" ', '/c "x" ', '/c" ', 'x /c"', 'cmd /c" '])

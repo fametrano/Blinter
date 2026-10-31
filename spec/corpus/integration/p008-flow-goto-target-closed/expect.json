@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "The closed scope is carried to the GOTO target (P008)",
+  "lines": {
+    "12": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

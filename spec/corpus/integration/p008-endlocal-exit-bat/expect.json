@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "exit.bat is not EXIT (P008)",
+  "lines": {
+    "8": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

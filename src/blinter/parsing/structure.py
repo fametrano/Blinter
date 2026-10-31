@@ -1,11 +1,15 @@
 """Label collection, script structure, and subroutine detection."""
 
+# pylint: disable=too-many-lines
+
+import bisect
 from contextvars import ContextVar
 import re
 from typing import (
     Callable,
     Dict,
     List,
+    NamedTuple,
     Optional,
     Set,
     Tuple,
@@ -16,6 +20,7 @@ from blinter.constants import BUILTIN_VARS
 from blinter.logging_config import logger
 from blinter.models import LintIssue
 from blinter.parsing.context import (
+    _command_segments,
     _is_blank_or_comment,
     _is_endlocal_command,
     _is_setlocal_command,
@@ -592,9 +597,15 @@ _delayed_expansion_cache_var: ContextVar[
 ] = ContextVar("delayed_expansion_cache", default=None)
 
 
+_delayed_expansion_flow_cache_var: ContextVar[
+    Optional[Dict[int, tuple[object, List[bool]]]]
+] = ContextVar("delayed_expansion_flow_cache", default=None)
+
+
 def _begin_delayed_expansion_pass() -> None:
-    """Start a per-lint delayed-expansion state cache for the current context."""
+    """Start the per-lint delayed-expansion state caches for the current context."""
     _delayed_expansion_cache_var.set({})
+    _delayed_expansion_flow_cache_var.set({})
 
 
 def _build_delayed_expansion_state(lines: List[str]) -> List[bool]:
@@ -626,11 +637,492 @@ def _delayed_expansion_state_for_lines(lines: List[str]) -> List[bool]:
     )
 
 
+# One SETLOCAL scope stack per path. ``None`` is a caller's scope that is not known.
+_FlowState = Tuple[Optional[bool], ...]
+_FlowOp = Tuple[str, str]
+
+_FLOW_SEGMENT_RE = re.compile(r"(?:for\b.*?\bdo\s+\(?\s*)?(.*)", re.IGNORECASE)
+# GOTO drops one colon and CALL drops them all. Both end the label at a later
+# colon or a redirection, and keep a quote in it, so ``call :x"y"`` looks for
+# the label ``x"y"``. A target glued to ``%`` or ``!``, as in ``call%fn%``, is computed.
+_FLOW_GOTO_RE = re.compile(
+    r"goto(?:[\s,;=]+:?|:|(?=[%!]))[\s,;=]*(:?[^\s,;=+):<>|&]+)", re.IGNORECASE
+)
+_FLOW_CALL_RE = re.compile(
+    r"call[\s,;=]*(?::+[\s,;=]*|(?=[%!]))([^\s,;=+):<>|&]+)", re.IGNORECASE
+)
+# Redirections before a command, as in ``>nul goto :x`` or ``2> "a b" call :x``.
+# A quoted part does not end the target, so in ``>"a b"exit /b`` the target is
+# ``"a b"exit`` and the command is ``/b``.
+_FLOW_REDIRECT_RE = re.compile(
+    r"\A(?:\d?(?:>>?|<)(?:&\d|\s*(?:\"[^\"]*\"|[^\s\"<>&|])+)\s*)*"
+)
+_FLOW_LABEL_RE = re.compile(r"\s*:([^\s:+&|<>,;=]+)")
+_FLOW_CONDITIONAL_RE = re.compile(r"(?:if|for|\)\s*else)\b", re.IGNORECASE)
+_FLOW_NESTED_CONDITION_RE = re.compile(
+    r"(?:&|\||\()\s*(?:if|for)\b|\)\s*else\s*\(", re.IGNORECASE
+)
+_FLOW_ELSE_SPLIT_RE = re.compile(r"\)\s*else\s*\(", re.IGNORECASE)
+_FLOW_SCOPE_CLOSE_RE = re.compile(
+    r"\bendlocal\b|\bdisabledelayedexpansion\b", re.IGNORECASE
+)
+_FLOW_DELAYED_VAR_RE = re.compile(r"![^!]+!")
+_FLOW_CHAIN_RE = re.compile(r"&&|\|\|")
+_FLOW_ELSE_OPEN_RE = re.compile(r"\)\s*else\b.*\($", re.IGNORECASE)
+_FLOW_ECHO_RE = re.compile(r"@?echo\b", re.IGNORECASE)
+_FLOW_ECHO_CLOSE_RE = re.compile(r'(?:[^"^)]|\^.|"[^"]*")*\)')
+_FLOW_ELSE_IF_RE = re.compile(r"\)\s*else\s+if\b", re.IGNORECASE)
+_FLOW_FOR_RE = re.compile(r"for\b", re.IGNORECASE)
+_FLOW_DO_RE = re.compile(r"\bdo\b", re.IGNORECASE)
+_FLOW_ELSE_RE = re.compile(r"\)\s*else\b", re.IGNORECASE)
+_FLOW_IF_TOKEN = r'(?:"[^"]*"|[^\s"=])+'
+# An IF and its condition, up to the command it runs.
+_FLOW_IF_RE = re.compile(
+    r"if\s+(?:/i\s+)?(?:not\s+)?"
+    rf"(?:(?:exist|defined|errorlevel|cmdextversion)\s+{_FLOW_IF_TOKEN}"
+    rf"|{_FLOW_IF_TOKEN}\s*==\s*{_FLOW_IF_TOKEN}"
+    rf"|{_FLOW_IF_TOKEN}\s+(?:equ|neq|lss|leq|gtr|geq)\s+{_FLOW_IF_TOKEN})",
+    re.IGNORECASE,
+)
+_FLOW_KEYWORD_RE = re.compile(r"(?:if|else|do)\b", re.IGNORECASE)
+_FLOW_UNKNOWN_START_RE = re.compile(r'\d?[<>]|[%!^:)"]')
+_MAX_FLOW_STATES_PER_LINE = 8
+
+
+class _FlowLine(NamedTuple):
+    """What one line does to the paths through it."""
+
+    ops: Tuple[_FlowOp, ...]
+    next_index: int
+    skips: Tuple[int, ...]
+    conditional: bool
+    in_block: bool
+
+
+def _flow_unescape(text: str) -> str:
+    """Return text with the carets cmd.exe removes outside quotes, as ``go^to`` to ``goto``."""
+    out: List[str] = []
+    quoted = False
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "^" and not quoted:
+            index += 1
+            char = text[index : index + 1]
+        elif char == '"':
+            quoted = not quoted
+        out.append(char)
+        index += 1
+    return "".join(out)
+
+
+def _flow_ops(line: str) -> Tuple[_FlowOp, ...]:
+    """Return a line's scope and jump operations, up to the one that ends the path."""
+    ops: List[_FlowOp] = []
+    nested_condition = _FLOW_NESTED_CONDITION_RE.search(line) is not None
+    parts = [
+        part
+        for segment in _command_segments(line)
+        for part in _FLOW_ELSE_SPLIT_RE.sub("\0", segment).split("\0")
+    ]
+    for segment in parts:
+        match = _FLOW_SEGMENT_RE.match(segment)
+        text = (str(match.group(1)) if match else segment).lstrip("(")
+        text = _FLOW_REDIRECT_RE.sub("", text, count=1)
+        word = (text.split() or [""])[0].lower()
+        unescaped = _flow_unescape(text)
+        goto = _FLOW_GOTO_RE.match(unescaped)
+        call = _FLOW_CALL_RE.match(unescaped)
+        if word == "setlocal":
+            lowered = text.lower()
+            disable = "disable" if "disabledelayedexpansion" in lowered else ""
+            enable = "enabledelayedexpansion" in lowered
+            ops.append(("setlocal", "enable" if enable else disable))
+        elif word == "endlocal":
+            ops.append(("endlocal", ""))
+        elif (word == "exit" or word.startswith("exit/")) and not nested_condition:
+            ops.append(("end", ""))
+            break
+        elif goto:
+            kind = "call" if nested_condition else "goto"
+            ops.append((kind, str(goto.group(1)).lower()))
+            if not nested_condition:
+                break
+        elif call:
+            ops.append(("call", str(call.group(1)).lower()))
+        elif word[:1] in ("%", "!"):
+            # A command read from a variable may be a GOTO or a CALL.
+            ops.append(("call", word))
+    return tuple(ops)
+
+
+def _flow_last_command(text: str) -> Optional[str]:
+    """Return the command after the last ``&`` or ``|`` outside quotes and carets.
+
+    Returns None when the trailing ``(`` is quoted or escaped, so it is text.
+    """
+    start = 0
+    quoted = False
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == '"':
+            quoted = not quoted
+        elif quoted:
+            pass
+        elif char == "^":
+            index += 1
+            if index == len(text) - 1:
+                return None
+        elif char in "&|":
+            start = index + 1
+        index += 1
+    return None if quoted else text[start:]
+
+
+def _flow_opens_block(text: str) -> Optional[bool]:
+    """Return whether the ``(`` that ends ``text`` opens a block, or None if unsure.
+
+    It opens one only where a command starts: alone, after ``&`` or ``|``,
+    after ``) else``, after an IF condition or after a FOR's DO. After any
+    other command, as in ``set x=(`` or ``call :sub (``, it is text.
+    """
+    command = _flow_last_command(text)
+    if command is None:
+        return False
+    while True:
+        command = command.lstrip(" \t,;=")
+        command = command[1:].lstrip(" \t,;=") if command[:1] == "@" else command
+        if command == "(":
+            return True
+        else_match = _FLOW_ELSE_RE.match(command)
+        if_match = _FLOW_IF_RE.match(command)
+        if else_match:
+            command = command[else_match.end() :]
+        elif if_match and command[if_match.end() :].strip():
+            command = command[if_match.end() :]
+        elif _FLOW_FOR_RE.match(command):
+            dos = list(_FLOW_DO_RE.finditer(command))
+            if len(dos) > 1:
+                return None
+            # Without DO, the ``(`` opens the FOR set that a later ``) do`` closes.
+            if not dos:
+                return True
+            command = command[dos[0].end() :]
+        elif (
+            command.startswith("(")
+            or _FLOW_KEYWORD_RE.match(command)
+            or _FLOW_UNKNOWN_START_RE.match(command)
+        ):
+            return None
+        else:
+            return False
+
+
+def _flow_block_closers(lines: List[str]) -> Optional[Dict[int, int]]:
+    """Map each line that opens a block to the line that closes it, or None if unbalanced.
+
+    Blocks are read from each line's shape, a trailing ``(`` and a leading ``)``,
+    because a FOR set wrapped with ``^`` holds parentheses over several lines.
+    A trailing ``(`` opens a block only where ``_flow_opens_block`` says so, so
+    in ``set x=(`` it is text, and a ``)`` that closes no block gives None:
+    cmd.exe ignores such a line, but it may close a block the walk did not see.
+    An ECHO inside a block with a ``)`` outside quotes and carets closes the
+    block mid-line, as in ``echo bye) else (``, so it gives None too.
+    """
+    closers: Dict[int, int] = {}
+    open_lines: List[int] = []
+    joined = ""
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        text = joined + stripped
+        # A line ending in an odd run of carets goes on in the next one.
+        carets = len(stripped) - len(stripped.rstrip("^"))
+        joined = text[:-1] + " " if carets % 2 else ""
+        if (
+            _FLOW_ECHO_RE.match(stripped)
+            and open_lines
+            and _FLOW_ECHO_CLOSE_RE.match(stripped)
+        ):
+            return None
+        if _is_blank_or_comment(stripped) or _FLOW_ECHO_RE.match(stripped):
+            continue
+        if stripped.startswith(")"):
+            if not open_lines:
+                return None
+            closers[open_lines.pop()] = index
+        if stripped.endswith("("):
+            opens = _flow_opens_block(text)
+            if opens is None:
+                return None
+            if opens:
+                open_lines.append(index)
+    return None if open_lines else closers
+
+
+def _flow_skip_targets(
+    lines: List[str], closers: Dict[int, int], opener: int
+) -> List[int]:
+    """Return where a path goes when the block opened at ``opener`` does not run.
+
+    Where the chain ends without an ELSE, the path skips the closing line too:
+    in ``) & exit /b`` the command after ``)`` belongs to the last IF.
+    """
+    targets: List[int] = []
+    closer = closers[opener]
+    while closer in closers and _FLOW_ELSE_OPEN_RE.match(lines[closer].strip()):
+        targets.append(closer + 1)
+        if not _FLOW_ELSE_IF_RE.match(lines[closer].strip()):
+            return targets
+        closer = closers[closer]
+    targets.append(closer + 1)
+    return targets
+
+
+def _flow_chain_end(lines: List[str], closers: Dict[int, int], closer: int) -> int:
+    """Return the line after the IF/ELSE chain whose block closes at ``closer``.
+
+    A command after the last ``)`` belongs to the last ELSE, so a path that ran
+    an earlier block of the chain skips it.
+    """
+    while closer in closers and _FLOW_ELSE_OPEN_RE.match(lines[closer].strip()):
+        closer = closers[closer]
+    return closer + 1
+
+
+def _flow_expands_after_scope_close(line: str) -> bool:
+    """Return True when a ``!VAR!`` follows the line's last ENDLOCAL or DISABLE.
+
+    Such a variable is read with the scope closed whichever way the line's
+    condition goes, as in ``if defined VAL endlocal & set "RET=!VAL!"``, or as
+    in ``if x setlocal disabledelayedexpansion & echo !A!``.
+    """
+    ends = list(_FLOW_SCOPE_CLOSE_RE.finditer(line))
+    if not ends:
+        return False
+    return _FLOW_DELAYED_VAR_RE.search(line[ends[-1].end() :]) is not None
+
+
+def _flow_spans_lines(stripped: str, conditional: bool, is_for: bool) -> bool:
+    """Return True when a command goes on past its line in a way the walk does not read.
+
+    Any line ending in an odd run of carets goes on: cmd.exe usually joins the
+    next line to it, so ``echo ^`` above ``exit /b`` runs no EXIT. It does not
+    after ``rem x ^`` or inside quotes, and the walk gives up on those too. A FOR
+    line does not count: the line after it is read as part of the FOR. An IF, FOR or
+    ``&&``/``||`` command also goes on through a block that does not close on a
+    line of its own, as in ``if x (echo bye`` followed by ``exit /b 1)``. The
+    walk reads a block from a trailing ``(`` and a leading ``)``, so it gives up
+    on these. An IF after ``&``, ``|`` or ``(`` counts too, and so does any
+    block it opens, since its skip edges are not known.
+    """
+    if (len(stripped) - len(stripped.rstrip("^"))) % 2:
+        return not is_for
+    nested = _FLOW_NESTED_CONDITION_RE.search(stripped) is not None
+    if not (conditional or nested):
+        return False
+    if nested and stripped.endswith("(") and not _FLOW_ELSE_OPEN_RE.match(stripped):
+        return True
+    body = stripped.lstrip(")")
+    return body.count("(") > body.count(")") and not stripped.endswith("(")
+
+
+def _flow_lines(lines: List[str]) -> Optional[List[_FlowLine]]:
+    """Return each line's operations and edges, or None if its blocks are unbalanced."""
+    closers = _flow_block_closers(lines)
+    if closers is None:
+        return None
+    # A FOR line ending in ``^`` goes on over the line that follows it.
+    for_lines: Set[int] = set()
+    for index, line in enumerate(lines):
+        stripped = line.strip().lstrip("@").strip()
+        if _FLOW_FOR_RE.match(stripped) or (
+            index - 1 in for_lines and lines[index - 1].rstrip().endswith("^")
+        ):
+            for_lines.add(index)
+    loop_backs = {closers[index]: index + 1 for index in closers if index in for_lines}
+    depth = [0] * (len(lines) + 1)
+    for opener, closer in closers.items():
+        depth[opener + 1] += 1
+        depth[closer] -= 1
+    for index in range(1, len(lines)):
+        depth[index] += depth[index - 1]
+    flow: List[_FlowLine] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip().lstrip("@").strip()
+        branches = (
+            _FLOW_CONDITIONAL_RE.match(stripped) is not None or index in for_lines
+        )
+        conditional = branches or _FLOW_CHAIN_RE.search(stripped) is not None
+        if _flow_spans_lines(stripped, conditional, index in for_lines):
+            return None
+        is_else_open = (
+            index in closers and _FLOW_ELSE_OPEN_RE.match(stripped) is not None
+        )
+        skips: List[int] = []
+        if index in closers and branches and not is_else_open:
+            skips = _flow_skip_targets(lines, closers, index)
+        elif index in closers and conditional and not is_else_open:
+            # ``ver || (`` skips its block, and a command after its ``)`` still runs.
+            skips = [closers[index]]
+        elif conditional and index not in closers:
+            skips = [index + 1]
+        if index in loop_backs:
+            skips.append(loop_backs[index])
+        flow.append(
+            _FlowLine(
+                _flow_ops(line),
+                (
+                    _flow_chain_end(lines, closers, closers[index])
+                    if is_else_open and index in closers
+                    else index + 1
+                ),
+                tuple(skips),
+                conditional and not _flow_expands_after_scope_close(line),
+                depth[index] > 0,
+            )
+        )
+    return flow
+
+
+def _flow_apply_scope(state: _FlowState, ops: Tuple[_FlowOp, ...]) -> _FlowState:
+    """Return the scope stack after a line's SETLOCAL and ENDLOCAL operations."""
+    for kind, mode in ops:
+        if kind == "setlocal":
+            inherited: Optional[bool] = state[-1] if state else False
+            value = {"enable": True, "disable": False}.get(mode, inherited)
+            state = (*state, value)
+        elif kind == "endlocal" and state and state[-1] is not None:
+            state = state[:-1]
+    return state
+
+
+def _flow_is_closed(state: _FlowState) -> bool:
+    """Return True when delayed expansion is known to be off in this scope stack."""
+    return not state or state[-1] is False
+
+
+def _flow_label_line(labels: Dict[str, List[int]], target: str, index: int) -> int:
+    """Return the line a jump from ``index`` to ``target`` reaches, or -1 if none.
+
+    cmd.exe searches for the label forward from the jump, then from the top of
+    the file, so with a label defined twice the first one below the jump wins.
+    """
+    found = labels.get(target)
+    if not found:
+        return -1
+    after = bisect.bisect_right(found, index)
+    return found[after] if after < len(found) else found[0]
+
+
+def _flow_targets(
+    ops: Tuple[_FlowOp, ...], labels: Dict[str, List[int]], index: int
+) -> Tuple[List[int], bool, bool]:
+    """Return the labels a line jumps to, whether a jump is computed, and if the path ends."""
+    targets: List[int] = []
+    computed = False
+    ended = False
+    for kind, target in ops:
+        if kind in ("goto", "call"):
+            if "%" in target or "!" in target:
+                computed = True
+            elif _flow_label_line(labels, target, index) >= 0:
+                targets.append(_flow_label_line(labels, target, index))
+            ended = ended or kind == "goto"
+        ended = ended or kind == "end"
+    return targets, computed, ended
+
+
+def _flow_labels(lines: List[str]) -> Dict[str, List[int]]:
+    """Map each label to the lines that define it, in order."""
+    labels: Dict[str, List[int]] = {}
+    for index, line in enumerate(lines):
+        match = _FLOW_LABEL_RE.match(line)
+        if match:
+            labels.setdefault(str(match.group(1)).lower(), []).append(index)
+    return labels
+
+
+def _flow_closed_lines(lines: List[str]) -> Optional[List[Optional[bool]]]:
+    """Return, per line, whether some path runs it with delayed expansion off.
+
+    A line no path reaches is None. A computed jump reaches every label with the
+    scope of the path that jumps. A CALL returns with the caller's scope
+    unchanged. Returns None for unbalanced blocks, too many scope states on a
+    line or at computed jumps, or a jump to a label inside a block.
+    """
+    flow = _flow_lines(lines)
+    if flow is None:
+        return None
+    labels = _flow_labels(lines)
+    block_labels = {
+        line for found in labels.values() for line in found if flow[line].in_block
+    }
+    seen: List[Set[_FlowState]] = [set() for _ in lines]
+    closed = [False] * len(lines)
+    computed_states: Set[_FlowState] = set()
+    pending: List[Tuple[int, _FlowState]] = [(0, ())]
+    while pending:
+        index, state = pending.pop()
+        if index >= len(lines) or state in seen[index]:
+            continue
+        seen[index].add(state)
+        if len(seen[index]) > _MAX_FLOW_STATES_PER_LINE:
+            return None
+        entry = flow[index]
+        after = _flow_apply_scope(state, entry.ops)
+        closed[index] = closed[index] or (
+            _flow_is_closed(after) and (not entry.conditional or _flow_is_closed(state))
+        )
+        targets, computed, ended = _flow_targets(entry.ops, labels, index)
+        if block_labels.intersection(targets) or (computed and block_labels):
+            # cmd.exe runs what follows such a label in ways the walk does not model.
+            return None
+        pending.extend((target, after) for target in targets)
+        pending.extend((skip, state) for skip in entry.skips)
+        if computed and after not in computed_states:
+            # A computed jump may reach any label, once per scope state.
+            computed_states.add(after)
+            if len(computed_states) > _MAX_FLOW_STATES_PER_LINE:
+                return None
+            pending.extend(
+                (target, after) for found in labels.values() for target in found
+            )
+        if not ended:
+            pending.append((entry.next_index, after))
+    return [
+        is_closed if states else None
+        for is_closed, states in zip(closed, seen, strict=True)
+    ]
+
+
+def _delayed_expansion_closed_for_lines(lines: List[str]) -> List[bool]:
+    """Return, per line, whether delayed expansion is off for P008, cached per lint pass.
+
+    A line is closed where the linear state says so, unless the walk reaches the
+    line and finds no path that runs it with delayed expansion off. So following
+    the paths can remove a finding but never add one, and a line the walk never
+    reaches, or a file it gives up on, keeps the linear state.
+    """
+
+    def build() -> List[bool]:
+        linear = _build_delayed_expansion_state(lines)
+        walked = _flow_closed_lines(lines)
+        if walked is None:
+            return [not active for active in linear]
+        return [
+            not active and on_path is not False
+            for on_path, active in zip(walked, linear, strict=True)
+        ]
+
+    return _identity_cached(_delayed_expansion_flow_cache_var.get(), lines, build)
+
+
 def _delayed_expansion_active_at_line(lines: List[str], line_num: int) -> bool:
-    """Return whether delayed expansion is active at the given 1-based line number."""
+    """Return whether P008 should treat delayed expansion as on at a 1-based line."""
     if line_num < 1 or line_num > len(lines):
         return False
-    return _delayed_expansion_state_for_lines(lines)[line_num - 1]
+    return not _delayed_expansion_closed_for_lines(lines)[line_num - 1]
 
 
 def _analyze_script_structure(

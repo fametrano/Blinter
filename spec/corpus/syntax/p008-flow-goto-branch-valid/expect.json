@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "ENDLOCAL then GOTO :label does not close the lines below the block (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

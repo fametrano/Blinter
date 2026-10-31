@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A caret at the end of a line joins the next one, so its GOTO is text (P008)",
+  "lines": {
+    "9": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

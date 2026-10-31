@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "A loop back inside the scope (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

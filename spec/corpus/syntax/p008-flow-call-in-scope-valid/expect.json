@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "A subroutine above SETLOCAL, called only inside the scope (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

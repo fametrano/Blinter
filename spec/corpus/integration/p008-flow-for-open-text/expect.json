@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A FOR block that does not close on a line of its own is not followed (P008)",
+  "lines": {
+    "9": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

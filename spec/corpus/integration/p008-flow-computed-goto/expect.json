@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A computed GOTO enters a label with the scope of the path that jumps, so a label reached with delayed expansion off is reported (P008)",
+  "lines": {
+    "4": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

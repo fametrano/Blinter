@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A subroutine reached with no scope open, below an unconditional ENDLOCAL (P008)",
+  "lines": {
+    "8": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

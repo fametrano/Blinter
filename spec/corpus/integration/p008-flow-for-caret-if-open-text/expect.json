@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "An IF after a FOR continued with a caret, whose block does not close on a line of its own, is not followed (P008)",
+  "lines": {
+    "10": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

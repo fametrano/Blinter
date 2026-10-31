@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "GOTO followed by a semicolon jumps to the label (P008)",
+  "lines": {
+    "9": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "config": {},
+  "description": "A FOR set wrapped with a caret does not stop the paths being followed (P008 negative)",
+  "lines": {},
+  "must_not": [
+    "P008"
+  ],
+  "oracle": "skip",
+  "rules": [],
+  "tags": [
+    "syntax"
+  ]
+}

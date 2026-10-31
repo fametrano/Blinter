@@ -1,0 +1,17 @@
+{
+  "config": {},
+  "description": "A CALL label keeps a quote, so call :sub\"x\" does not reach :sub (P008)",
+  "lines": {
+    "11": [
+      "P008"
+    ]
+  },
+  "must_not": [],
+  "oracle": "skip",
+  "rules": [
+    "P008"
+  ],
+  "tags": [
+    "integration"
+  ]
+}

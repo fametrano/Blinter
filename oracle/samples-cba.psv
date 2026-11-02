@@ -67,3 +67,11 @@ B | B-o29 | after a block in a child, the child's ^& splits -> output has a line
 B | B-o30 | ^^^& after a top-level block -> env_changes shows whether S003PROBE was set | @(ver >nul) ^^^& set S003PROBE=1
 B | B-o31 | a FOR /F command string holding a block -> output has a line [S003PROBE=1 ] | @for /f "delims=" %%a in ('(ver ^>nul^) ^^^& set S003PROBE^=1 ^^^& set S003PROBE') do @echo [%%a]
 B | B-o32 | a DO block, then ^& -> env_changes shows S003PROBE=1 | @for /f %%a in ('ver') do @(echo X) ^& set S003PROBE=1
+A | A-s1 | comma after a GOTO label -> END alone if , ends the label | @echo off\ngoto :end,x\necho FELL\n:end\necho END
+A | A-s2 | semicolon after a GOTO label -> END alone | @echo off\ngoto :end;\necho FELL\n:end\necho END
+A | A-s3 | plus after a GOTO label -> END alone if + ends the label | @echo off\ngoto :end+x\necho FELL\n:end\necho END
+A | A-s4 | GOTO with a double colon -> END alone | @echo off\ngoto ::end\necho FELL\n:end\necho END
+A | A-s5 | comma before a CALL label -> SUB, then BACK | @echo off\ncall ,:sub\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
+A | A-s6 | comma after a CALL label -> SUB [x], then BACK | @echo off\ncall :sub,x\necho BACK\nexit /b\n:sub\necho SUB [%1]\nexit /b
+B | B-o29b | after a block in a child, the child's ^& splits -> [1] on its own line | @cmd /v:on /c (ver ^>nul) ^^^& set S003PROBE=1 ^^^& echo [!S003PROBE!]\n@set S003PROBE
+B | B-o31b | a FOR /F child command holding a block -> report output | @for /f "delims=" %%a in ('cmd /v:on /c "(ver>nul) & set S003PROBE=1 & echo [!S003PROBE!]"') do @echo %%a

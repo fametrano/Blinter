@@ -145,7 +145,7 @@ def run_once(sample: dict, rundir: pathlib.Path, merged: bool) -> dict:
     files.mkdir(parents=True)
     cwd.mkdir()
     before, after = files / "before.env", files / "after.env"
-    body = files / "sample.cmd"
+    body = files / "sample.bat"
     wrapper = files / "wrapper.cmd"
     write_batch(body, [*sample["lines"], *LABELS])
     call = f'call "{body}"' + (f" {sample['args']}" if sample["args"] else "")

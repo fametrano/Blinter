@@ -1,12 +1,9 @@
-# Oracle samples, round r12 (2026-11-02).
+# Oracle samples, round r13 (2026-11-02).
 # Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS IT | SCRIPT
 # SCRIPT is one batch file; "\n" separates its lines (written with CRLF). Run as a .bat file.
-F | F1 | escaped ampersand after DO, FOR set with ( in a quoted command -> R12F=0 if ^& is text | @echo off\nset R12F=0\nfor /f %%a in ('echo (x') do echo ^& set R12F=1\nset R12F
-F | F2 | as F1, command starting with ( -> R12F=0 if ^& is text | @echo off\nset R12F=0\nfor /f %%a in ('(ver') do echo ^& set R12F=1\nset R12F
-R | R1 | redirection after a GOTO label -> END without FELL if GOTO jumps | @echo off\ngoto :end>nul\necho FELL\n:end\necho END
-R | R2 | redirection before GOTO -> END without FELL if GOTO jumps | @echo off\n>nul goto :end\necho FELL\n:end\necho END
-R | R3 | input redirection after a GOTO label -> END without FELL if GOTO jumps | @echo off\ngoto :end<nul\necho FELL\n:end\necho END
-R | R4 | redirection after a CALL label -> BACK; SUB only if redirection does not apply to the call | @echo off\ncall :sub>nul\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-R | R5 | redirection before CALL -> R12R=1 if :sub ran | @echo off\n>nul call :sub\nset R12R\necho BACK\nexit /b\n:sub\nset R12R=1\nexit /b
-R | R6 | append redirection after a CALL label -> R12S=1 if :sub ran | @echo off\ncall :sub>>"%TEMP%\\r12.txt"\necho BACK\nset R12S\nexit /b\n:sub\nset R12S=1\nexit /b
-K | K1 | continuation then ^^^& -> R12K=0 if the ampersand is text | @echo off\nset R12K=0\necho x /i ^\n^^^& set R12K=1\nset R12K
+N | N1 | nested unescaped FOR /F inside a FOR /F string -> stderr shows how it parses | @echo off\nset R13N=0\nfor /f %%a in ('for /f %%b in ('ver') do echo x') do echo ^& set R13N=1\nset R13N
+Q | Q1 | CALL label followed by a quote -> R13Q=1 if the label ends at the quote | @echo off\ncall :sub"x"\necho BACK\nset R13Q\nexit /b\n:sub\nset R13Q=1\nexit /b
+V | V1 | CALL glued to an expanded label -> R13V=1 if :sub ran | @echo off\nset fn=:sub\ncall%fn%\necho BACK\nset R13V\nexit /b\n:sub\nset R13V=1\nexit /b
+V | V2 | GOTO glued to an expanded label -> END without FELL if GOTO jumps | @echo off\nset t=:end\ngoto%t%\necho FELL\n:end\necho END
+P | P1 | continuation then ^^^| -> abc line only if | is a pipe | @echo off\necho abc ^\n^^^| find "b"
+D | D1 | two redirections before CALL -> R13D=1 if :sub ran | @echo off\n2>&1 >nul call :sub\necho BACK\nset R13D\nexit /b\n:sub\nset R13D=1\nexit /b

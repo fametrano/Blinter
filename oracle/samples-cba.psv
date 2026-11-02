@@ -1,13 +1,12 @@
-# Oracle samples, round r11 (2026-11-02).
+# Oracle samples, round r12 (2026-11-02).
 # Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS IT | SCRIPT
 # SCRIPT is one batch file; "\n" separates its lines (written with CRLF). Run as a .bat file.
-A | C1 | caret before the CALL label colon -> SUB, then BACK if the caret is removed | @echo off\ncall ^:sub\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-A | C2 | caret inside a CALL label -> SUB, then BACK if the caret is removed | @echo off\ncall :s^ub\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-A | C3 | colon after a CALL label -> SUB, then BACK if : ends the label | @echo off\ncall :sub:x\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-B | P1 | continuation line starting with ^| -> what prints | @echo off\necho a ^\n^| findstr a
-B | P1b | continuation line starting with ^| into find -> what prints | @echo off\necho abc ^\n^| find "b"
-B | P2 | continuation line starting with ^& -> R11X=1 if the joined line splits at & | @echo off\nset R11X=0\necho x ^\n^& set R11X=1\nset R11X
-B | K1 | child cmd split at ^^^& after a block with escaped ) -> CHILDSPLIT if it splits | @cmd /c (echo IN ^) ^^^& echo CHILDSPLIT
-B | K1b | same with set in child and parent echo -> env_changes and [..] show which side ran | @cmd /c (dir ^>nul ^) ^^^& set R11K=1 ^& echo [%R11K%]
-A | L1 | GOTO with three colons -> END alone if extra colons are stripped | @echo off\ngoto :::end\necho FELL\n:end\necho END
-A | L2 | quoted GOTO label -> END alone if quotes are accepted | @echo off\ngoto ":end"\necho FELL\n:end\necho END
+F | F1 | escaped ampersand after DO, FOR set with ( in a quoted command -> R12F=0 if ^& is text | @echo off\nset R12F=0\nfor /f %%a in ('echo (x') do echo ^& set R12F=1\nset R12F
+F | F2 | as F1, command starting with ( -> R12F=0 if ^& is text | @echo off\nset R12F=0\nfor /f %%a in ('(ver') do echo ^& set R12F=1\nset R12F
+R | R1 | redirection after a GOTO label -> END without FELL if GOTO jumps | @echo off\ngoto :end>nul\necho FELL\n:end\necho END
+R | R2 | redirection before GOTO -> END without FELL if GOTO jumps | @echo off\n>nul goto :end\necho FELL\n:end\necho END
+R | R3 | input redirection after a GOTO label -> END without FELL if GOTO jumps | @echo off\ngoto :end<nul\necho FELL\n:end\necho END
+R | R4 | redirection after a CALL label -> BACK; SUB only if redirection does not apply to the call | @echo off\ncall :sub>nul\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
+R | R5 | redirection before CALL -> R12R=1 if :sub ran | @echo off\n>nul call :sub\nset R12R\necho BACK\nexit /b\n:sub\nset R12R=1\nexit /b
+R | R6 | append redirection after a CALL label -> R12S=1 if :sub ran | @echo off\ncall :sub>>"%TEMP%\\r12.txt"\necho BACK\nset R12S\nexit /b\n:sub\nset R12S=1\nexit /b
+K | K1 | continuation then ^^^& -> R12K=0 if the ampersand is text | @echo off\nset R12K=0\necho x /i ^\n^^^& set R12K=1\nset R12K

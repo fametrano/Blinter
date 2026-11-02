@@ -58,3 +58,8 @@ A | A-q4 | jump into a THEN block -> in, [1] if ELSE skipped; [!A!] if it runs |
 A | A-q5 | jump into a block -> whether ") & cmd" runs | @echo off\ngoto :inside\nif "x"=="y" (\n:inside\n  echo in\n) & echo AFTER\necho END
 A | A-q6 | "rem )" inside a block -> IN, END if it does not close the block | @echo off\nif "x"=="x" (\n  rem )\n  echo IN\n)\necho END
 A | A-r13b | GOTO from a variable set before SETLOCAL -> prints [1], [!A!] | @echo off\nset "go=goto :show"\nsetlocal enabledelayedexpansion\nset A=1\ncall :show\nendlocal\n%go%\nexit /b\n:show\necho [!A!]\nexit /b
+B | B-o24 | an escaped ) in a FOR /F command string does not close the set; the child splits on the & -> prints [S003PROBE=1] | @for /f "delims=" %%a in ('echo a^) ^& set S003PROBE^=1 ^& set S003PROBE') do @echo [%%a]
+B | B-o25 | a block holding a FOR /F, then ^& -> prints X, then "Environment variable S003PROBE not defined" if B's drop is right | @(for /f %%a in ('ver') do @echo X) ^& set S003PROBE=1\n@set S003PROBE
+B | B-o26 | if 1==1 (cmd /c echo A) ^& set -> prints S003PROBE=1 | @if 1==1 (cmd /c echo A) ^& set S003PROBE=1 ^& set S003PROBE
+B | B-o27 | REM with a trailing caret swallows the next line -> prints "Environment variable S003PROBE not defined" | @rem x ^\n^& set S003PROBE=1\n@set S003PROBE
+B | B-o28 | a quoted trailing caret does not continue the line -> prints "Environment variable S003PROBE not defined" | @echo "a^\n^& set S003PROBE=1\n@set S003PROBE

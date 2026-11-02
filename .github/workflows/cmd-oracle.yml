@@ -1,0 +1,36 @@
+name: cmd.exe oracle
+
+# Runs the samples in oracle/samples*.txt under cmd.exe and records what it
+# does. Fork tooling only: it runs on pushes to a cmd-oracle branch.
+on:
+  push:
+    branches:
+      - cmd-oracle
+      - cmd-oracle-r*
+
+permissions:
+  contents: read
+
+jobs:
+  oracle:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Run the samples under cmd.exe
+        shell: pwsh
+        run: >-
+          python oracle/run_oracle.py
+          --workdir "$env:RUNNER_TEMP\oracle"
+          --out cmd-oracle-results.json
+          --summary "$env:GITHUB_STEP_SUMMARY"
+      - name: Upload the results
+        uses: actions/upload-artifact@v7
+        with:
+          name: cmd-oracle-results
+          path: cmd-oracle-results.json

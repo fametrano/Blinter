@@ -1,0 +1,228 @@
+# Samples run under cmd.exe by .github/workflows/cmd-oracle.yml.
+#
+# Format, one directive or sample per line:
+#   # source: TEXT  labels the samples that follow, until the next one.
+#   # setup: CMD    runs CMD before the sample, in the file that calls it
+#                   (repeatable). The runner's environment is inherited, so
+#                   a variable that must be undefined gets `# setup: set p=`.
+#   # args: TEXT    arguments passed to the sample file.
+#   # line: TEXT    a line placed before the sample line (repeatable), for
+#                   samples of more than one line.
+#   # anything else is a comment; blank lines are ignored.
+#   Any other line is the sample line. It ends the sample, and the setup,
+#   args and line directives start afresh. Trailing spaces are kept.
+#
+# The sample runs in its own batch file, called from a wrapper that records
+# the environment before and after it. That file also holds the labels :x
+# and :probe, which echo their arguments. More samples go in any file named
+# oracle/samples*.txt: the runner reads them all, in name order, then the
+# files named oracle/samples*.psv, one sample a line in the form
+# `BRANCH | ID | PROBE -> EXPECTED | SCRIPT`, where a literal \n separates the
+# lines of SCRIPT and \\ stands for one backslash.
+
+# source: #62 table
+# setup: set z=
+set z="unclosed & SET hidden
+# setup: set y=
+call :x "a & SET y=2
+# setup: set t=
+# setup: set u=
+set t=^"a" & SET u=2
+# setup: set y=
+call :x "a" & SET y=2
+# setup: set x=
+# setup: set y=
+set x=^" & SET y=2 & dir ^"
+# setup: set p=
+cmd /c "echo hi & SET p=2
+# setup: set p=
+# setup: set q=
+set p=%p:"=% & SET q=1
+# setup: set p=
+# setup: set q=
+set p=%p:"=% & SET q="x"
+# setup: set x=
+# setup: set y=
+# setup: set "my var="
+set x=%my var:"=% & SET y=1
+# setup: set x=
+# setup: set p=
+# setup: set fake=
+set x=%p:" & SET fake "=%
+# setup: set x=
+# setup: set p=
+# setup: set q=
+set x=%p:a="% & SET q="x"
+# setup: set p=
+# setup: set a=
+set p=50% & dir c: & SET a=1 %
+# setup: set x=
+# setup: set p=
+# setup: set q=
+set x=^%p:a="% & SET q=1
+
+# source: #62 table, probe variants
+# setup: set p=probe
+cmd /c "echo hi & SET p
+# setup: set p=x
+# setup: set q=
+set p=%p:"=% & SET q=1
+# setup: set "p=a"b"
+# setup: set q=
+set p=%p:"=% & SET q=1
+# setup: set p=x
+# setup: set q=
+set p=%p:"=% & SET q="x"
+# setup: set x=
+# setup: set y=
+# setup: set "my var=x"
+set x=%my var:"=% & SET y=1
+# setup: set x=
+# setup: set p=x
+# setup: set fake=
+set x=%p:" & SET fake "=%
+# setup: set x=
+# setup: set p=a
+# setup: set fake=
+set x=%p:" & SET fake "=%
+# setup: set x=
+# setup: set p=x
+# setup: set q=
+set x=%p:a="% & SET q="x"
+# setup: set x=
+# setup: set p=a
+# setup: set q=
+set x=%p:a="% & SET q="x"
+# setup: set x=
+# setup: set p=x
+# setup: set q=
+set x=^%p:a="% & SET q=1
+
+# source: CodeRabbit on #62 (discussion_r4440141094)
+# setup: set x=
+# setup: set p=x
+# setup: set q=
+set x=%p:%"=Y% & SET q=1
+# setup: set x=
+# setup: set p=
+# setup: set q=
+set x=%p:%"=Y% & SET q=1
+
+# source: #62 reply, percent in the search text
+# setup: set x=
+# setup: set p=x
+# setup: set q=
+set x=%p:a%"=Y% & SET q=1
+# setup: set x=
+# setup: set p=
+# setup: set q=
+set x=%p:a%"=Y% & SET q=1
+# setup: set x=
+# setup: set "p=a"b"
+# setup: set q=
+set x=%p:a%"=Y% & SET q=1
+# setup: set x=
+# setup: set p=x
+# setup: set q=
+# setup: set "p:=v"
+# setup: set p:
+set x=%p:%"=Y% & SET q=1
+# setup: set x=
+# setup: set p=
+# setup: set q=
+# setup: set "p:=v"
+# setup: set p:
+set x=%p:%"=Y% & SET q=1
+
+# source: C table (two repetitions of each shape)
+"a" "a" 
+/c "x" /c "x" 
+cmd /c "x" cmd /c "x" 
+/c" /c" 
+x /c"x /c"
+cmd /c" cmd /c" 
+# setup: set x=
+%x:"%x:"
+# setup: set a=
+set a=1 & set a=1 & 
+
+# source: B table
+# setup: set a=
+dir SET a=1
+# setup: set a=
+dir ^& SET a=1
+# setup: set a=
+dir ^^^& SET a=1
+# setup: set a=
+title SET a=1
+# setup: set a=
+dir ^^& SET a=1
+# setup: set a=b
+if /i "%a%"=="b" SET a=1
+# setup: set a=0
+# setup: type nul > x
+if defined a if exist x SET a=1
+# setup: set a=
+for %%i in (x) do SET a=1
+<nul SET /p =x
+2<nul SET /p =x
+# setup: set a=
+if (a) == b SET a=1
+# setup: set a=
+start /affinity 1 /node 0 SET a=1
+# setup: set a=
+cmd.exe /d /k SET a=1
+# setup: set a=
+%comspec% /c SET a=1
+# setup: set a=
+"C:\Windows\System32\cmd.exe" /c SET a=1
+# setup: set a=
+start/b SET a=1
+# setup: set a=0
+# setup: type nul > x
+if exist,x SET a=1
+
+# source: B table, probe variants (SET shows a variable in a child cmd)
+# setup: set a=probe
+if (a) == (a) SET a=1
+# setup: set a=probe
+start /b /affinity 1 /node 0 SET a
+# setup: set a=probe
+cmd.exe /d /k SET a
+# setup: set a=probe
+%comspec% /c SET a
+# setup: set a=probe
+"C:\Windows\System32\cmd.exe" /c SET a
+# setup: set a=probe
+start/b SET a
+
+# source: A (p008-flow-goto-branch-valid)
+# args: 0
+# line: @echo off
+# line: setlocal enabledelayedexpansion
+# line: set "A=%~1"
+# line: if "!A!"=="1" (
+# line:     endlocal
+# line:     goto :error
+# line: )
+# line: echo !A!
+# line: endlocal
+# line: exit /b 0
+# line: :error
+exit /b 1
+
+# source: A, probe variant (echo on the ENDLOCAL branch)
+# args: 1
+# line: @echo off
+# line: setlocal enabledelayedexpansion
+# line: set "A=%~1"
+# line: if "!A!"=="1" (
+# line:     endlocal
+# line:     echo after endlocal on the branch: !A!
+# line:     goto :error
+# line: )
+# line: echo !A!
+# line: endlocal
+# line: exit /b 0
+# line: :error
+exit /b 1

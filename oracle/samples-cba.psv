@@ -1,0 +1,18 @@
+# Oracle samples for the Blinter stack C/B/A (reviewer, 2026-11-02).
+# Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS THE REVIEW'S READING | SCRIPT
+# SCRIPT is one batch file; "\n" separates its lines (write them with CRLF). Run as a .cmd file.
+B | B-o1 | an escaped & after unquoted cmd /c separates commands in the child -> prints S003PROBE=1 | @cmd /c echo A ^& set S003PROBE=1 ^& set S003PROBE
+B | B-o2 | an escaped & inside a FOR /F command string separates commands -> prints [S003PROBE=1] | @for /f "delims=" %%a in ('ver ^& set S003PROBE^=1 ^& set S003PROBE') do @echo [%%a]
+B | B-o3 | escaped quotes around a cmd /c string still run both commands in the child -> prints S003PROBE=1 | @cmd /c ^"set S003PROBE=1 ^& set S003PROBE^"
+B | B-o4 | %name with space% expands before IF reads its operands -> prints S003PROBE=1 | @set "my var=a"\n@if %my var% == a set S003PROBE=1\n@set S003PROBE
+B | B-o5 | !comspec! as command name runs cmd.exe -> prints S003PROBE=1 | @setlocal enabledelayedexpansion\n@!comspec! /c set S003PROBE=1 ^& set S003PROBE
+B | B-o6 | a caret-escaped space stays inside an IF EXIST operand -> prints S003PROBE=1 | @if exist C:\Program^ Files set S003PROBE=1\n@set S003PROBE
+B | B-o7 | cmd.exe accepts glued switches /d/c -> prints S003PROBE=1 | @cmd /d/c set S003PROBE=1 ^& set S003PROBE
+A | A-o1 | a block after || is skipped when the left side succeeds, so the next line runs with delayed expansion off -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nver >nul || (\n  exit /b 1\n)\necho [!A!]
+A | A-o2 | a block opened with a command on the IF line and closed at the end of the last line is skipped as a whole -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nif "x"=="y" (echo bye\n  exit /b 1)\necho [!A!]
+A | A-o3 | a caret at line end joins EXIT to the IF, so EXIT is conditional -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nif "x"=="y" ^\nexit /b 1\necho [!A!]
+A | A-o4 | (if ... exit /b) is conditional -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\n(if exist C:\\no_such_dir_zz exit /b)\necho [!A!]
+A | A-o5 | CALL %fn% with fn=:sub calls the label -> prints [!A!] SUB | @echo off\nset "fn=:sub"\ncall %fn%\nexit /b\n:sub\necho [!A!] SUB\nexit /b
+A | A-o6 | GOTO with a duplicate label searches forward from the current line -> prints SECOND (FIRST means first-in-file) | @echo off\ngoto :main\n:x\necho FIRST\nexit /b 0\n:main\ngoto :x\necho unreachable\n:x\necho SECOND
+A | A-o7 | whether "& cmd" after an IF's closing parenthesis belongs to the IF -> prints only END if it belongs to the IF, AFTER and END if not | @echo off\nif "x"=="y" (\n  echo then\n) & echo AFTER\necho END
+A | A-o8 | whether GOTO strips quotes from its label -> prints END only if quotes are stripped; an error otherwise | @echo off\ngoto "end"\necho FELL\n:end\necho END

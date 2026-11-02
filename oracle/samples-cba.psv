@@ -1,17 +1,13 @@
-# Oracle samples, round r10 (2026-11-02).
+# Oracle samples, round r11 (2026-11-02).
 # Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS IT | SCRIPT
 # SCRIPT is one batch file; "\n" separates its lines (written with CRLF). Run as a .bat file.
-B | O1 | does the child cmd split at ^& after a block -> a CHILDSPLIT line if it splits | @cmd /c (ver ^>nul) ^^^& echo CHILDSPLIT
-B | O1b | same, setting a variable in the child -> R10A is not set in the parent either way; stderr shows whether the child ran set | @cmd /c (ver ^>nul) ^^^& set R10A=1\n@set R10A
-B | O2 | FOR /F command string with an escaped ) after nul -> [CHILDSPLIT] if the child splits | @for /f "delims=" %%a in ('(ver ^>nul^) ^^^& echo CHILDSPLIT') do @echo [%%a]
-B | O3 | FOR /F command string with an unescaped ) after nul -> [CHILDSPLIT] if the child splits | @for /f "delims=" %%a in ('(ver ^>nul) ^^^& echo CHILDSPLIT') do @echo [%%a]
-A | G1 | caret before the GOTO label colon -> END alone if the caret is removed | @echo off\ngoto ^:end\necho FELL\n:end\necho END
-A | G2 | equals sign after a GOTO label -> END alone if = ends the label | @echo off\ngoto :end=x\necho FELL\n:end\necho END
-A | G3 | semicolon after a CALL label -> SUB, then BACK | @echo off\ncall :sub;x\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-A | G4 | equals sign after a CALL label -> SUB, then BACK | @echo off\ncall :sub=x\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-A | G5 | plus after a CALL label -> SUB, then BACK if + ends the label | @echo off\ncall :sub+x\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-A | G6 | CALL with a double colon -> SUB, then BACK if one colon is stripped | @echo off\ncall ::sub\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
-A | G7 | colon after a GOTO label -> END alone if : ends the label | @echo off\ngoto :end:x\necho FELL\n:end\necho END
-A | G8 | GOTO ::show with both ::show and :show labels -> COLONCOLON or SHOW names the label taken | @echo off\ngoto ::show\necho FELL\nexit /b\n::show\necho COLONCOLON\nexit /b\n:show\necho SHOW
-A | G9 | caret inside the GOTO keyword -> END alone if go^to is goto | @echo off\ngo^to :end\necho FELL\n:end\necho END
-A | G10 | caret inside a GOTO label -> END alone if the caret is removed | @echo off\ngoto :e^nd\necho FELL\n:end\necho END
+A | C1 | caret before the CALL label colon -> SUB, then BACK if the caret is removed | @echo off\ncall ^:sub\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
+A | C2 | caret inside a CALL label -> SUB, then BACK if the caret is removed | @echo off\ncall :s^ub\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
+A | C3 | colon after a CALL label -> SUB, then BACK if : ends the label | @echo off\ncall :sub:x\necho BACK\nexit /b\n:sub\necho SUB\nexit /b
+B | P1 | continuation line starting with ^| -> what prints | @echo off\necho a ^\n^| findstr a
+B | P1b | continuation line starting with ^| into find -> what prints | @echo off\necho abc ^\n^| find "b"
+B | P2 | continuation line starting with ^& -> R11X=1 if the joined line splits at & | @echo off\nset R11X=0\necho x ^\n^& set R11X=1\nset R11X
+B | K1 | child cmd split at ^^^& after a block with escaped ) -> CHILDSPLIT if it splits | @cmd /c (echo IN ^) ^^^& echo CHILDSPLIT
+B | K1b | same with set in child and parent echo -> env_changes and [..] show which side ran | @cmd /c (dir ^>nul ^) ^^^& set R11K=1 ^& echo [%R11K%]
+A | L1 | GOTO with three colons -> END alone if extra colons are stripped | @echo off\ngoto :::end\necho FELL\n:end\necho END
+A | L2 | quoted GOTO label -> END alone if quotes are accepted | @echo off\ngoto ":end"\necho FELL\n:end\necho END

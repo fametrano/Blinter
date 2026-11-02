@@ -226,3 +226,16 @@ exit /b 1
 # line: exit /b 0
 # line: :error
 exit /b 1
+
+# source: maintainer case 1, p=x
+# setup: set p=x
+set x=%"=Y% & SET q=1
+# source: maintainer case 1, p undefined
+# setup: set p=
+set x=%"=Y% & SET q=1
+# source: maintainer case 2, p=x
+# setup: set p=x
+set x=%p:%%"=Y% & SET q=1
+# source: maintainer case 2, p undefined
+# setup: set p=
+set x=%p:%%"=Y% & SET q=1

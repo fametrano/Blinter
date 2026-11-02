@@ -16,3 +16,13 @@ A | A-o5 | CALL %fn% with fn=:sub calls the label -> prints [!A!] SUB | @echo of
 A | A-o6 | GOTO with a duplicate label searches forward from the current line -> prints SECOND (FIRST means first-in-file) | @echo off\ngoto :main\n:x\necho FIRST\nexit /b 0\n:main\ngoto :x\necho unreachable\n:x\necho SECOND
 A | A-o7 | whether "& cmd" after an IF's closing parenthesis belongs to the IF -> prints only END if it belongs to the IF, AFTER and END if not | @echo off\nif "x"=="y" (\n  echo then\n) & echo AFTER\necho END
 A | A-o8 | whether GOTO strips quotes from its label -> prints END only if quotes are stripped; an error otherwise | @echo off\ngoto "end"\necho FELL\n:end\necho END
+B | B-o8 | an unescaped parenthesis inside an unquoted cmd /c string leaves ^& live in the child -> prints A then S003PROBE=1 | @cmd /c (echo A) ^& set S003PROBE=1 ^& set S003PROBE
+B | B-o9 | START of an internal command runs it in cmd /k, where ^& splits -> prints S003PROBE=1 | @start "" /b /wait set S003PROBE=1 ^& set S003PROBE <nul
+B | B-o10 | a /c glued to its command is still cmd /c -> prints S003PROBE=1 | @cmd /cset S003PROBE=1 ^& set S003PROBE
+B | B-o11 | table row: ^^^& after one cmd /c stays text in the child -> prints "A & set S003PROBE=1" and no S003PROBE=1 line | @cmd /c echo A ^^^& set S003PROBE=1
+B | B-o12 | ^^^& after two cmd /c splits in the grandchild -> prints A then S003PROBE=1 | @cmd /c cmd /c echo A ^^^& set S003PROBE=1 ^^^& set S003PROBE
+A | A-o9 | a label reached by a computed GOTO after ENDLOCAL runs with delayed expansion off -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset "A=1"\nendlocal\nset "t=next"\ngoto %t%\n:next\necho [!A!]
+A | A-o10 | a line after a skipped || block, also reached by CALL -> prints [1] then [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset "A=1"\ncall :tail\nendlocal\nver >nul || (\n  exit /b 1\n)\n:tail\necho [!A!]\nexit /b 0
+A | A-o11 | same after an IF block closed on its exit line -> prints [1] then [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset "A=1"\ncall :tail\nendlocal\nif "x"=="y" (echo bye\n  exit /b 1)\n:tail\necho [!A!]\nexit /b 0
+A | A-o12 | same after a caret-continued IF -> prints [1] then [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset "A=1"\ncall :tail\nendlocal\nif "x"=="y" ^\nexit /b 1\n:tail\necho [!A!]\nexit /b 0
+A | A-o13 | ELSE form: whether "& cmd" after ) of an ELSE block belongs to the ELSE -> prints else, AFTER, END if it does | @echo off\nif "x"=="y" (\n  echo then\n) else (\n  echo else\n) & echo AFTER\necho END

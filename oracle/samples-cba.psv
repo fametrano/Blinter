@@ -63,3 +63,7 @@ B | B-o25 | a block holding a FOR /F, then ^& -> prints X, then "Environment var
 B | B-o26 | if 1==1 (cmd /c echo A) ^& set -> prints S003PROBE=1 | @if 1==1 (cmd /c echo A) ^& set S003PROBE=1 ^& set S003PROBE
 B | B-o27 | REM with a trailing caret swallows the next line -> prints "Environment variable S003PROBE not defined" | @rem x ^\n^& set S003PROBE=1\n@set S003PROBE
 B | B-o28 | a quoted trailing caret does not continue the line -> prints "Environment variable S003PROBE not defined" | @echo "a^\n^& set S003PROBE=1\n@set S003PROBE
+B | B-o29 | after a block in a child, the child's ^& splits -> output has a line S003PROBE=1 | @cmd /c (ver ^>nul) ^^^& set S003PROBE=1 ^^^& set S003PROBE
+B | B-o30 | ^^^& after a top-level block -> env_changes shows whether S003PROBE was set | @(ver >nul) ^^^& set S003PROBE=1
+B | B-o31 | a FOR /F command string holding a block -> output has a line [S003PROBE=1 ] | @for /f "delims=" %%a in ('(ver ^>nul^) ^^^& set S003PROBE^=1 ^^^& set S003PROBE') do @echo [%%a]
+B | B-o32 | a DO block, then ^& -> env_changes shows S003PROBE=1 | @for /f %%a in ('ver') do @(echo X) ^& set S003PROBE=1

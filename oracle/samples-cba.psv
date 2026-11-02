@@ -39,3 +39,13 @@ A | A-r10 | label called through a FOR variable -> prints [1], [!A!] | @echo off
 A | A-r11 | caret-continued empty FOR -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nfor %%i in () do ^\ngoto :eof\necho [!A!]
 A | A-r12 | FOR /F command continued by caret, no match -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nfor /f "delims=" %%F in ('ver ^\n  ^| find "zzzz"') do (\n  goto :eof\n)\necho [!A!]
 A | A-r13 | GOTO from a variable -> prints [1], [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nset "go=goto :show"\ncall :show\nendlocal\n%go%\nexit /b\n:show\necho [!A!]\nexit /b
+B | B-o13 | a comma after an IF condition is a delimiter before the command -> prints S003PROBE=1 | @if exist %~f0, set S003PROBE=1\n@set S003PROBE
+B | B-o14 | a semicolon after an IF comparison -> prints S003PROBE=1 | @if 1==1; set S003PROBE=1\n@set S003PROBE
+B | B-o15 | a comma after & before a command -> prints S003PROBE=1 | @cd . & , set S003PROBE=1\n@set S003PROBE
+B | B-o16 | the ) closing a FOR /F set ends its command string, so ^& after DO is text -> prints [Microsoft Windows …] & set S003PROBE=1, then "Environment variable S003PROBE not defined" | @for /f "delims=" %%a in ('ver') do @echo [%%a] ^& set S003PROBE=1\n@set S003PROBE
+B | B-o17 | a ) closing a block ends a cmd /c inside it, so a later ^& is text -> prints A, then "Environment variable S003PROBE not defined" | @(cmd /c echo A) ^& set S003PROBE=1\n@set S003PROBE
+B | B-o18 | cmd /r is cmd /c -> prints S003PROBE=1 | @cmd /r set S003PROBE=1 ^& set S003PROBE
+B | B-o19 | START of an external program does not split on ^& -> find.exe reports missing files "&", "echo", "SPLIT", and no SPLIT line | @start "" /b /wait find.exe /c "x" nul ^& echo SPLIT <nul
+B | B-o20 | CALL of an internal command with ^& -> prints S003PROBE=1 only if CALL splits | @call echo A ^& set S003PROBE=1\n@set S003PROBE
+B | B-o21 | caret continuation escapes the next line's caret, so its & is live -> prints A, then S003PROBE=1 | @cmd /c echo A ^\n^& set S003PROBE=1\n@set S003PROBE
+B | B-o22 | ^& inside a quoted cmd /c string stays text in the child -> prints no S003PROBE line | @cmd /c "set S003PROBE=1 ^& set S003PROBE"

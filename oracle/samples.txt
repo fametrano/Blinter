@@ -239,3 +239,72 @@ set x=%p:%%"=Y% & SET q=1
 # source: maintainer case 2, p undefined
 # setup: set p=
 set x=%p:%%"=Y% & SET q=1
+
+# source: G1, p=x
+# setup: set x=
+# setup: set q=
+# setup: set p=x
+set x=%p:a%"=Y"% & SET q=1
+# source: G2, p=undefined
+# setup: set x=
+# setup: set q=
+# setup: set p=
+set x=%p:a%"=Y"% & SET q=1
+# source: G3, p=x
+# setup: set x=
+# setup: set q=
+# setup: set p=x
+set x=%p:a%"="% & SET q=1
+# source: G4, p=undefined
+# setup: set x=
+# setup: set q=
+# setup: set p=
+set x=%p:a%"="% & SET q=1
+# source: G5, p=x
+# setup: set x=
+# setup: set q=
+# setup: set p=x
+set x=%p:a%b="% & SET q=1
+# source: G6, p=undefined
+# setup: set x=
+# setup: set q=
+# setup: set p=
+set x=%p:a%b="% & SET q=1
+# source: G7, p=x
+# setup: set x=
+# setup: set q=
+# setup: set p=x
+set x=%p:a"%=Y"% & SET q=1
+# source: G8, p=undefined
+# setup: set x=
+# setup: set q=
+# setup: set p=
+set x=%p:a"%=Y"% & SET q=1
+# source: G9, p=x
+# setup: set x=
+# setup: set q=
+# setup: set y=
+# setup: set p=x
+set x=%p:a% & SET q=1 & echo %y%
+# source: G10, p=undefined
+# setup: set x=
+# setup: set q=
+# setup: set y=
+# setup: set p=
+set x=%p:a% & SET q=1 & echo %y%
+# source: G11, p=x
+# setup: set x=
+# setup: set q=
+# setup: set y=
+# setup: set w=
+# setup: set z=
+# setup: set p=x
+set x=%p:a%y% & SET q=1 & set z=%w%
+# source: G12, p=undefined
+# setup: set x=
+# setup: set q=
+# setup: set y=
+# setup: set w=
+# setup: set z=
+# setup: set p=
+set x=%p:a%y% & SET q=1 & set z=%w%

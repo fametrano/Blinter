@@ -26,3 +26,16 @@ A | A-o10 | a line after a skipped || block, also reached by CALL -> prints [1] 
 A | A-o11 | same after an IF block closed on its exit line -> prints [1] then [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset "A=1"\ncall :tail\nendlocal\nif "x"=="y" (echo bye\n  exit /b 1)\n:tail\necho [!A!]\nexit /b 0
 A | A-o12 | same after a caret-continued IF -> prints [1] then [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset "A=1"\ncall :tail\nendlocal\nif "x"=="y" ^\nexit /b 1\n:tail\necho [!A!]\nexit /b 0
 A | A-o13 | ELSE form: whether "& cmd" after ) of an ELSE block belongs to the ELSE -> prints else, AFTER, END if it does | @echo off\nif "x"=="y" (\n  echo then\n) else (\n  echo else\n) & echo AFTER\necho END
+A | A-r1 | ELSE "& cmd" when the THEN branch runs -> prints then, END | @echo off\nif "x"=="x" (\n  echo then\n) else (\n  echo else\n) & echo AFTER\necho END
+A | A-r2 | ENDLOCAL in THEN, "& exit /b" after ELSE -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif "x"=="x" (\n  endlocal\n) else (\n  echo else\n) & exit /b\necho [!A!]
+A | A-r3 | ELSE IF chain with "& cmd" after its last ) -> prints END | @echo off\nif "x"=="y" (\n  echo a\n) else if "x"=="z" (\n  echo b\n) & echo AFTER\necho END
+A | A-r4 | caret-continued IF after & -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nver >nul & if "x"=="y" ^\ngoto :eof\necho [!A!]
+A | A-r5 | IF block after & -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nver >nul & if "x"=="y" (\n  goto :eof\n)\necho [!A!]
+A | A-r6 | parenthesized one-line IF GOTO -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\n(if "x"=="y" goto :eof)\necho [!A!]
+A | A-r7 | ENDLOCAL in THEN, ELSE closed on its exit line -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif "x"=="x" (\n  endlocal\n) else (echo leaving\n  exit /b 1)\necho [!A!]
+A | A-r8 | THEN closed on its echo line -> prints bye, [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif "x"=="x" (\n  endlocal\n  echo bye) else (\n  exit /b 1\n)\necho [!A!]
+A | A-r9 | SETLOCAL DISABLEDELAYEDEXPANSION then !A! on the same line -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif "x"=="x" setlocal disabledelayedexpansion & echo [!A!]
+A | A-r10 | label called through a FOR variable -> prints [1], [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\ncall :show\nendlocal\nfor %%L in (:show) do call %%L\nexit /b\n:show\necho [!A!]\nexit /b
+A | A-r11 | caret-continued empty FOR -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nfor %%i in () do ^\ngoto :eof\necho [!A!]
+A | A-r12 | FOR /F command continued by caret, no match -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nfor /f "delims=" %%F in ('ver ^\n  ^| find "zzzz"') do (\n  goto :eof\n)\necho [!A!]
+A | A-r13 | GOTO from a variable -> prints [1], [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nset "go=goto :show"\ncall :show\nendlocal\n%go%\nexit /b\n:show\necho [!A!]\nexit /b

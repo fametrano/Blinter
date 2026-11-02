@@ -49,3 +49,12 @@ B | B-o19 | START of an external program does not split on ^& -> find.exe report
 B | B-o20 | CALL of an internal command with ^& -> prints S003PROBE=1 only if CALL splits | @call echo A ^& set S003PROBE=1\n@set S003PROBE
 B | B-o21 | caret continuation escapes the next line's caret, so its & is live -> prints A, then S003PROBE=1 | @cmd /c echo A ^\n^& set S003PROBE=1\n@set S003PROBE
 B | B-o22 | ^& inside a quoted cmd /c string stays text in the child -> prints no S003PROBE line | @cmd /c "set S003PROBE=1 ^& set S003PROBE"
+A | A-q1 | FOR then IF block closed on its exit line -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nfor %%i in (1) do if "x"=="y" (echo bye\n  exit /b 1)\necho [!A!]
+A | A-q2 | empty FOR with a block closed on its exit line -> prints [!A!] | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nendlocal\nfor %%i in () do (echo bye\n  exit /b 1)\necho [!A!]
+A | A-q3a | comma after GOTO -> END alone if a delimiter | @echo off\ngoto,end\necho FELL\n:end\necho END
+A | A-q3b | semicolon after GOTO -> END alone if a delimiter | @echo off\ngoto;end\necho FELL\n:end\necho END
+A | A-q3c | equals sign after GOTO -> END alone if a delimiter | @echo off\ngoto=end\necho FELL\n:end\necho END
+A | A-q4 | jump into a THEN block -> in, [1] if ELSE skipped; [!A!] if it runs | @echo off\nsetlocal enabledelayedexpansion\nset A=1\ngoto :inside\nif "x"=="x" (\n:inside\n  echo in\n) else (\n  endlocal\n)\necho [!A!]
+A | A-q5 | jump into a block -> whether ") & cmd" runs | @echo off\ngoto :inside\nif "x"=="y" (\n:inside\n  echo in\n) & echo AFTER\necho END
+A | A-q6 | "rem )" inside a block -> IN, END if it does not close the block | @echo off\nif "x"=="x" (\n  rem )\n  echo IN\n)\necho END
+A | A-r13b | GOTO from a variable set before SETLOCAL -> prints [1], [!A!] | @echo off\nset "go=goto :show"\nsetlocal enabledelayedexpansion\nset A=1\ncall :show\nendlocal\n%go%\nexit /b\n:show\necho [!A!]\nexit /b

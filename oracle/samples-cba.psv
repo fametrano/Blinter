@@ -1,9 +1,13 @@
-# Oracle samples, round r13 (2026-11-02).
+# Oracle samples, round r14 (2026-11-03).
 # Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS IT | SCRIPT
 # SCRIPT is one batch file; "\n" separates its lines (written with CRLF). Run as a .bat file.
-N | N1 | nested unescaped FOR /F inside a FOR /F string -> stderr shows how it parses | @echo off\nset R13N=0\nfor /f %%a in ('for /f %%b in ('ver') do echo x') do echo ^& set R13N=1\nset R13N
-Q | Q1 | CALL label followed by a quote -> R13Q=1 if the label ends at the quote | @echo off\ncall :sub"x"\necho BACK\nset R13Q\nexit /b\n:sub\nset R13Q=1\nexit /b
-V | V1 | CALL glued to an expanded label -> R13V=1 if :sub ran | @echo off\nset fn=:sub\ncall%fn%\necho BACK\nset R13V\nexit /b\n:sub\nset R13V=1\nexit /b
-V | V2 | GOTO glued to an expanded label -> END without FELL if GOTO jumps | @echo off\nset t=:end\ngoto%t%\necho FELL\n:end\necho END
-P | P1 | continuation then ^^^| -> abc line only if the bar is a pipe | @echo off\necho abc ^\n^^^| find "b"
-D | D1 | two redirections before CALL -> R13D=1 if :sub ran | @echo off\n2>&1 >nul call :sub\necho BACK\nset R13D\nexit /b\n:sub\nset R13D=1\nexit /b
+X | X1 | >&2 before CALL -> R=1 if :sub ran | @echo off\n>&2 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X2 | echo with >&2 then call text -> R=1 if :sub ran | @echo off\necho see >&2 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X3 | echo with 2>&1 then call text -> R=1 if :sub ran | @echo off\necho see 2>&1 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X4 | echo with <&2 then call text -> R=1 if :sub ran | @echo off\necho see <&2 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X5 | echo with 1>&2 then goto text; BACK shows fall-through -> R=1 if :sub ran | @echo off\necho see 1>&2 goto sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X6 | escaped > then & call -> R=1 if :sub ran | @echo off\necho a ^>& call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X7 | double caret > then & call -> R=1 if :sub ran | @echo off\necho a ^^>& call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X8 | expanded 2 before >&1 then call text -> R=1 if :sub ran | @echo off\nset v=2\necho a %v%>&1 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X9 | undefined v before >&1 then call text -> R=1 if :sub ran | @echo off\necho a %v%>&1 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b
+X | X10 | echo with 3>&1 then call text -> R=1 if :sub ran | @echo off\necho see 3>&1 call :sub\necho BACK\nset R\nexit /b\n:sub\nset R=1\nexit /b

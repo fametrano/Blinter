@@ -1,9 +1,10 @@
-# Oracle samples, round r15 (2026-11-03).
+# Oracle samples, round r16 (2026-11-04).
 # Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS IT | SCRIPT
 # SCRIPT is one batch file; "\n" separates its lines (written with CRLF). Run as a .bat file.
-X | T1 | trailing ^^ after IF command -> R=0 if next line joined, R=1 if not | @echo off\nset R=0\nif 1==1 echo a ^^\nset R=1\nset R
-X | T2 | REM ending in caret -> R=0 if next line swallowed | @echo off\nset R=0\nrem x ^\nset R=1\nset R
-X | T3 | double-colon label ending in caret -> R=0 if next line swallowed | @echo off\nset R=0\n:: x ^\nset R=1\nset R
-X | T4 | quoted redirect glued to exit /b -> no FELL and no R if exit ran | @echo off\n>"%TEMP%\a b.txt"exit /b\necho FELL\nset R=1\nset R
-X | T5 | close paren line outside block with & exit /b -> FELL if line ignored | @echo off\nset x=(\n) & exit /b\necho FELL\nset R=1\nset R
-X | T6 | close paren line outside block with & set -> R=1 if rest of line ran | @echo off\n) & set R=1\nset R
+X | S1 | start /b /wait cmd /c with three carets before ampersand -> CHILD-SPLIT on its own line if the child splits | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\nstart "" /b /wait cmd /c echo A ^^^& echo CHILD-SPLIT
+X | S2 | start /b /wait cmd /c with one caret before ampersand -> SPLIT1 on its own line if the child splits | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\nstart "" /b /wait cmd /c echo A ^& echo SPLIT1
+X | S3 | start /b /wait cmd /c with three carets before the pipe -> no dir listing and find output if the child pipes | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\nstart "" /b /wait cmd /c dir /b ^^^| find "x"\necho done
+X | S4 | start /b /wait cmd /c three carets, child SET into a file -> R16=1 typed if the child ran SET | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\nstart /b /wait cmd /c echo A ^^^& set R16=1 ^^^& set R16 ^> "%TEMP%\r16a.txt"\ntype "%TEMP%\r16a.txt"
+X | S5 | start /b /wait cmd /c one caret, child SET into a file -> R16=1 typed if the child ran SET | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\nstart /b /wait cmd /c echo A ^& set R16=1 ^& set R16 ^> "%TEMP%\r16b.txt"\ntype "%TEMP%\r16b.txt"
+X | S6 | start /b /wait cmd /c with seven carets before ampersand -> DEEP on its own line if the child splits | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\nstart /b /wait cmd /c echo A ^^^^^^^& echo DEEP
+X | S7 | control without START, cmd /c with three carets -> NOSTART on its own line if the child splits | @echo off\ndel "%TEMP%\\r16*.txt" 2>nul\ncmd /c echo A ^^^& echo NOSTART

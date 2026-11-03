@@ -5,5 +5,5 @@ N | N1 | nested unescaped FOR /F inside a FOR /F string -> stderr shows how it p
 Q | Q1 | CALL label followed by a quote -> R13Q=1 if the label ends at the quote | @echo off\ncall :sub"x"\necho BACK\nset R13Q\nexit /b\n:sub\nset R13Q=1\nexit /b
 V | V1 | CALL glued to an expanded label -> R13V=1 if :sub ran | @echo off\nset fn=:sub\ncall%fn%\necho BACK\nset R13V\nexit /b\n:sub\nset R13V=1\nexit /b
 V | V2 | GOTO glued to an expanded label -> END without FELL if GOTO jumps | @echo off\nset t=:end\ngoto%t%\necho FELL\n:end\necho END
-P | P1 | continuation then ^^^| -> abc line only if | is a pipe | @echo off\necho abc ^\n^^^| find "b"
+P | P1 | continuation then ^^^| -> abc line only if the bar is a pipe | @echo off\necho abc ^\n^^^| find "b"
 D | D1 | two redirections before CALL -> R13D=1 if :sub ran | @echo off\n2>&1 >nul call :sub\necho BACK\nset R13D\nexit /b\n:sub\nset R13D=1\nexit /b

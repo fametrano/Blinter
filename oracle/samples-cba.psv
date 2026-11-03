@@ -1,9 +1,11 @@
-# Oracle samples, round r17 (2026-11-04).
+# Oracle samples, round r18 (2026-11-04).
 # Format: BRANCH | ID | WHAT IT PROBES -> OUTPUT THAT CONFIRMS IT | SCRIPT
 # SCRIPT is one batch file; "\n" separates its lines (written with CRLF). Run as a .bat file.
-X | Q1 | start with quoted full cmd.exe path, cmd /c, three carets -> CHILD-SPLIT on its own line if the child splits | @echo off\nstart "" /b /wait "C:\\Windows\\System32\\cmd.exe" /c echo A ^^^& echo CHILD-SPLIT
-X | Q2 | start with quoted full path, cmd /c cmd /c, three carets -> GRANDCHILD-SPLIT on its own line if the grandchild splits | @echo off\nstart "" /b /wait "C:\\Windows\\System32\\cmd.exe" /c cmd /c echo A ^^^& echo GRANDCHILD-SPLIT
-X | Q3 | start with quoted full path, cmd /c, one caret -> SPLIT1 on its own line if the child splits | @echo off\nstart "" /b /wait "C:\\Windows\\System32\\cmd.exe" /c echo A ^& echo SPLIT1
-X | Q4 | start with a non-empty title, cmd /c, three carets -> TITLED on its own line if the child splits | @echo off\nstart "title" /b /wait cmd /c echo A ^^^& echo TITLED
-X | C1 | start cmd without /c, caret ampersand, stdin from nul -> AFTER printed or not, then done | @echo off\nstart /b /wait cmd ^& echo AFTER <nul\necho done
-X | C2 | start cmd without /c, words then caret ampersand, stdin from nul -> AFTER2 printed or not, then done | @echo off\nstart /b /wait cmd echo X ^& echo AFTER2 <nul\necho done
+X | E1 | endlocal and exit inside a false IF block in a called label -> [1] then BACK if the scope stays open | @echo off\ncall :x\necho BACK\nexit /b\n:x\nsetlocal enabledelayedexpansion\nset A=1\nif 1==0 (\nendlocal\nexit /b 1\n)\necho [!A!]\nendlocal\nexit /b
+X | E2 | endlocal and exit inside a true IF block in a called label -> BACK only if the block exits | @echo off\ncall :x\necho BACK\nexit /b\n:x\nsetlocal enabledelayedexpansion\nset A=1\nif 1==1 (\nendlocal\nexit /b 1\n)\necho [!A!]\nendlocal\nexit /b
+X | E3 | endlocal and goto inside a false IF block in a called label -> [1] then BACK if the scope stays open | @echo off\ncall :x\necho BACK\nexit /b\n:x\nsetlocal enabledelayedexpansion\nset A=1\nif 1==0 (\nendlocal\ngoto :err\n)\necho [!A!]\nendlocal\nexit /b\n:err\necho ERR\nexit /b
+X | E4 | endlocal and goto inside a true IF block in a called label -> ERR then BACK if goto abandons the block | @echo off\ncall :x\necho BACK\nexit /b\n:x\nsetlocal enabledelayedexpansion\nset A=1\nif 1==1 (\nendlocal\ngoto :err\n)\necho [!A!]\nendlocal\nexit /b\n:err\necho ERR\nexit /b
+X | E5 | false IF with endlocal and exit joined by ampersand -> [1] if both commands are under the IF | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif 1==0 endlocal & exit /b 2\necho [!A!]
+X | E6 | false IF with a parenthesised command followed by ampersand -> b if the ampersand ends the IF | @echo off\nif 1==0 (echo a) & echo b
+X | E7 | endlocal and exit in nested true IF blocks -> nothing printed if the exit runs | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif 1==1 (\nif 1==1 (\nendlocal\nexit /b 1\n)\n)\necho [!A!]
+X | E8 | endlocal and exit in the ELSE branch of a false IF -> nothing printed if ELSE is taken | @echo off\nsetlocal enabledelayedexpansion\nset A=1\nif 1==0 (\necho x\n) else (\nendlocal\nexit /b 1\n)\necho [!A!]
